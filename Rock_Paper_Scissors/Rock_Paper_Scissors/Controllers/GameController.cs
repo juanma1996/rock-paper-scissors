@@ -26,9 +26,15 @@ public class GameController : ControllerBase
     }
 
     [HttpGet("{id}", Name = "Get")]
-    public async Task<Game> Get(Guid id)
+    public async Task<IActionResult> Get(Guid id)
     {
-        return await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
+        Game game = await GetGame(id);
+        if (game is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(game);
     }
 
     [HttpPost("[action]")]
@@ -44,19 +50,29 @@ public class GameController : ControllerBase
     }
 
     [HttpPut("[action]/{id}")]
-    public async Task<Game> Finish(Guid id)
+    public async Task<IActionResult> Finish(Guid id)
     {
-        Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
+        Game game = await GetGame(id);
+        if (game is null)
+        {
+            return NotFound();
+        }
+
         game.IsActive = false;
         await _context.SaveChangesAsync();
 
-        return game;
+        return Ok(game);
     }
 
     [HttpPut("[action]/{id}")]
-    public async Task<Game> Move(Guid id, Moves moveType)
+    public async Task<IActionResult> Move(Guid id, Moves moveType)
     {
-        Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
+        Game game = await GetGame(id);
+        if (game is null)
+        {
+            return NotFound();
+        }
+
         switch (moveType)
         {
             case Moves.Rock:
@@ -73,6 +89,12 @@ public class GameController : ControllerBase
         _gameLogic.CalculateMove(moveType, game);
         await _context.SaveChangesAsync();
 
-        return game;
+        return Ok(game);
+    }
+
+    private async Task<Game> GetGame(Guid id)
+    {
+        return await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
+
     }
 }
