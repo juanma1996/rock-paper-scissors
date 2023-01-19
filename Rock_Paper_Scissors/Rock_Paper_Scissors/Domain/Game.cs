@@ -10,6 +10,6 @@ namespace Rock_Paper_Scissors
         public int Paper { get; set; }
         public int Scissor { get; set; }
         public bool IsActive { get; set; }
-        public string LastResult { get; set; }
+        public string? LastResult { get; set; }
     }
 }

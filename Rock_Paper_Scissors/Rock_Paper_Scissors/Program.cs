@@ -1,4 +1,5 @@
 using Rock_Paper_Scissors;
+using Rock_Paper_Scissors.BusinessLogic;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IGameLogic, GameLogic>();
 
 var app = builder.Build();
 

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Rock_Paper_Scissors.BusinessLogic;
+using Rock_Paper_Scissors.Enum;
 
 namespace Rock_Paper_Scissors.Controllers;
 
@@ -7,48 +9,44 @@ namespace Rock_Paper_Scissors.Controllers;
 [Route("[controller]")]
 public class GameController : ControllerBase
 {
-    private DataContext _context;
-    private Random _randomNumber = new Random();
-    private static readonly Dictionary<int, int> WinningMoves = new Dictionary<int, int>
-    {
-        {3, 1},
-        {2, 3},
-        {1, 2}
-    };
+    private readonly DataContext _context;
+    private readonly IGameLogic _gameLogic;
 
-    public GameController(DataContext dataContext)
+
+    public GameController(DataContext dataContext, IGameLogic gameLogic)
     {
         _context = dataContext;
+        _gameLogic = gameLogic;
     }
 
-    [HttpGet("[action]")]
+    [HttpGet(Name = "GetAll")]
+    public async Task<List<Game>> Get()
+    {
+        return await _context.Games.ToListAsync();
+    }
+
+    [HttpGet("{id}", Name = "Get")]
     public async Task<Game> Get(Guid id)
     {
         return await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
     }
 
     [HttpPost("[action]")]
-    public async Task Start()
-    {
-        Game game = await GetActiveGame();
-        if ( game is null)
-        {
-            Game newGame = new Game();
+    public async Task<Game> Start()
+    { 
+            Game game = new Game();
             game.Id = new Guid();
             game.IsActive = true;
             _context.Games.Add(game);
-            await _context.SaveChangesAsync(); 
-        }
-        else
-        {
-            Console.WriteLine("You must finish the game first.");
-        }
+            await _context.SaveChangesAsync();
+
+            return game;
     }
 
     [HttpPut("[action]")]
-    public async Task<Game> Finish()
+    public async Task<Game> Finish(Guid id)
     {
-        Game game = await GetActiveGame();
+        Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
         game.IsActive = false;
         await _context.SaveChangesAsync();
 
@@ -56,77 +54,25 @@ public class GameController : ControllerBase
     }
 
     [HttpPut("[action]")]
-    public async Task<Game> Move(int moveType)
+    public async Task<Game> Move(Guid id, Moves moveType)
     {
-        Game game = await GetActiveGame();
-        if (moveType == 1)
+        Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
+        switch (moveType)
         {
-            game.Rock++;
+            case Moves.Rock:
+                game.Rock++;
+                break;
+            case Moves.Paper:
+                game.Paper++;
+                break;
+            case Moves.Scissors:
+                game.Scissor++;
+                break;
         }
-        else if (moveType == 2)
-        {
-            game.Paper++;
-        }
-        else
-        {
-            game.Scissor++;
-        }
-        await CalculateMove(moveType, game);
+
+        _gameLogic.CalculateMove(moveType, game);
         await _context.SaveChangesAsync();
 
         return game;
-    }
-
-    private async Task<Game> CalculateMove(int playerChoice, Game game)
-    {
-        int computerChoice = await PredictNextMove();
-        if (playerChoice == computerChoice)
-        {
-            game.Draw++;
-            game.LastResult = "Tie";
-        }
-        else if (playerChoice == 1 && computerChoice == 3 || playerChoice == 2 && computerChoice == 1 || playerChoice == 3 && computerChoice == 2)
-        {
-            game.PlayerScore++;
-            game.LastResult = "Player wins!";
-        }
-        else
-        {
-            game.ComputerScore++;
-            game.LastResult = "Computer wins!";
-        }
-
-        return game;
-    }
-
-    private async Task<Game> GetActiveGame()
-    {
-        return await _context.Games.Where(x => x.IsActive).FirstOrDefaultAsync();
-    }
-
-    private int GetRandomMove()
-    {
-        return WinningMoves.Keys.ToArray()[_randomNumber.Next(WinningMoves.Count)];
-    }
-
-    private async Task<int> PredictNextMove()
-    {
-        int mostUsed;
-        Game game = await GetActiveGame();
-        if (game.Rock >= game.Paper && game.Rock >= game.Scissor)
-        {
-            mostUsed = 1;
-        }else if (game.Paper >= game.Rock && game.Paper >= game.Scissor)
-        {
-            mostUsed = 2;
-        } else if (game.Scissor >= game.Rock && game.Scissor >= game.Paper)
-        {
-            mostUsed = 3;
-        }
-        else
-        {
-            mostUsed = GetRandomMove();
-        }
-        return WinningMoves[mostUsed];
     }
 }
