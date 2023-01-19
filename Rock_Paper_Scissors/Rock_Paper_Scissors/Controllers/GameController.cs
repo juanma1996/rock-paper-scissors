@@ -43,7 +43,7 @@ public class GameController : ControllerBase
             return game;
     }
 
-    [HttpPut("[action]")]
+    [HttpPut("[action]/{id}")]
     public async Task<Game> Finish(Guid id)
     {
         Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
@@ -53,7 +53,7 @@ public class GameController : ControllerBase
         return game;
     }
 
-    [HttpPut("[action]")]
+    [HttpPut("[action]/{id}")]
     public async Task<Game> Move(Guid id, Moves moveType)
     {
         Game game = await _context.Games.Where(x => x.Id == id).FirstOrDefaultAsync();
